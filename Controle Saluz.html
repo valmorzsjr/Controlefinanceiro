@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle Diário de Caixa - Restaurante</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f4f7f6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #007bff;
+            margin-bottom: 25px;
+        }
+
+        h2 {
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+            margin-top: 30px;
+            color: #444;
+        }
+
+        .flex {
+            display: flex;
+            gap: 15px;
+        }
+
+        .flex > div {
+            flex: 1;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input[type="number"], 
+        input[type="text"], 
+        select {
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        .total-box {
+            padding: 10px;
+            border-radius: 6px;
+            text-align: right;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        #save-day-btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            float: right;
+            margin-left: 10px;
+        }
+
+        #add-expense-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            border: none;
+            padding: 6px 10px;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .expense-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .status-message {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .loading { background: #ffeeba; color: #856404; }
+
+        /* MOBILE */
+        @media (max-width: 600px) {
+            .flex {
+                flex-direction: column;
+            }
+            .expense-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            #save-day-btn {
+                width: 100%;
+                margin-top: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <h1>📅 Controle Diário de Caixa</h1>
+
+    <!-- DATA -->
+    <h2>Selecionar Data</h2>
+    <div class="flex">
+        <div>
+            <label>Dia</label>
+            <select id="day"></select>
+        </div>
+        <div>
+            <label>Mês</label>
+            <select id="month"></select>
+        </div>
+        <div>
+            <label>Ano</label>
+            <select id="year"></select>
+        </div>
+    </div>
+
+    <div id="loading-status" class="status-message loading">Carregando...</div>
+
+    <!-- FATURAMENTO -->
+    <h2>💰 Faturamento do Dia</h2>
+
+    <label>Faturamento Loja</label>
+    <input type="number" id="faturamento-loja" value="0">
+
+    <label>Entrada iFood</label>
+    <input type="number" id="entrada-ifood" value="0">
+
+    <h3>Total do Dia</h3>
+    <div class="total-box" style="background:#dce8ff">
+        R$ <span id="total-faturamento">0.00</span>
+    </div>
+
+    <button id="save-day-btn">Salvar Dia</button>
+
+    <div id="save-status" class="status-message"></div>
+
+    <!-- DESPESAS -->
+    <h2>💸 Despesas</h2>
+
+    <div class="expense-row">
+        <input type="text" id="new-expense-desc" placeholder="Descrição">
+        <input type="number" id="new-expense-value" placeholder="Valor">
+        <button id="add-expense-btn">Adicionar</button>
+    </div>
+
+    <div id="expenses-list"></div>
+
+    <h3>Total Despesas</h3>
+    <div class="total-box" style="background:#ffe5e5">
+        R$ <span id="total-despesas">0.00</span>
+    </div>
+
+    <!-- RESULTADO -->
+    <h2>✨ Resultado Líquido do Dia</h2>
+    <div class="total-box" id="resultado-liquido-box">
+        R$ <span id="resultado-liquido">0.00</span>
+    </div>
+
+    <!-- ACUMULADO -->
+    <h2>📊 Totais Acumulados</h2>
+
+    <div class="total-box" style="background:#ecf7ff">
+        Total Loja: R$ <span id="accumulated-faturamento-loja">0.00</span>
+    </div>
+
+    <div class="total-box" style="background:#ecfff1">
+        Total iFood: R$ <span id="accumulated-entrada-ifood">0.00</span>
+    </div>
+
+    <div class="total-box" style="background:#e8ffe8">
+        Faturamento Total: R$ <span id="accumulated-faturamento">0.00</span>
+    </div>
+
+    <div class="total-box" style="background:#ffeaea">
+        Despesas Totais: R$ <span id="accumulated-despesas">0.00</span>
+    </div>
+
+    <div class="total-box" id="accumulated-resultado-box">
+        Total Líquido: R$ <span id="accumulated-resultado">0.00</span>
+    </div>
+
+</div>
+
+<script>
+const STORAGE_PREFIX = "restaurante_caixa_";
+
+/* UTILIDADES */
+function showMessage(id, msg, type="success") {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = "status-message " + type;
+    el.style.display = "block";
+    setTimeout(() => el.style.display = "none", 2500);
+}
+
+function getNumber(id) {
+    return Number(document.getElementById(id).value) || 0;
+}
+
+/* DATA */
+function populateDateSelectors() {
+    const day = document.getElementById("day");
+    const month = document.getElementById("month");
+    const year = document.getElementById("year");
+
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+
+    for (let a = anoAtual; a >= anoAtual - 3; a--) {
+        year.innerHTML += `<option value="${a}">${a}</option>`;
+    }
+
+    for (let m = 1; m <= 12; m++) {
+        month.innerHTML += `<option value="${m}">${m}</option>`;
+    }
+
+    updateDays();
+
+    year.value = anoAtual;
+    month.value = hoje.getMonth() + 1;
+    day.value = hoje.getDate();
+
+    year.addEventListener("change", updateDaysAndLoad);
+    month.addEventListener("change", updateDaysAndLoad);
+    day.addEventListener("change", loadDailyRecord);
+}
+
+function updateDaysAndLoad() {
+    updateDays();
+    loadDailyRecord();
+}
+
+function updateDays() {
+    const day = document.getElementById("day");
+    const m = document.getElementById("month").value;
+    const y = document.getElementById("year").value;
+
+    const dias = new Date(y, m, 0).getDate();
+    const prev = day.value;
+
+    day.innerHTML = "";
+    for (let d = 1; d <= dias; d++) {
+        day.innerHTML += `<option value="${d}">${d}</option>`;
+    }
+
+    if (prev <= dias) day.value = prev;
+}
+
+/* DESPESAS */
+function addExpense(desc, valor) {
+    const list = document.getElementById("expenses-list");
+
+    const row = document.createElement("div");
+    row.className = "expense-row";
+    row.innerHTML = `
+        <input type="text" class="expense-desc" value="${desc}">
+        <input type="number" class="expense-value" value="${valor}">
+        <button class="delete-btn">X</button>
+    `;
+
+    row.querySelector(".expense-value").addEventListener("input", updateTotals);
+    row.querySelector(".expense-desc").addEventListener("input", updateTotals);
+
+    row.querySelector(".delete-btn").addEventListener("click", () => {
+        row.remove();
+        updateTotals();
+    });
+
+    list.appendChild(row);
+}
+
+/* TOTAIS */
+function updateTotals() {
+    const total = getNumber("faturamento-loja") + getNumber("entrada-ifood");
+    document.getElementById("total-faturamento").textContent = total.toFixed(2);
+
+    const despesas = [...document.querySelectorAll(".expense-value")]
+        .reduce((s, el) => s + (Number(el.value) || 0), 0);
+    document.getElementById("total-despesas").textContent = despesas.toFixed(2);
+
+    const resultado = total - despesas;
+    const box = document.getElementById("resultado-liquido-box");
+
+    document.getElementById("resultado-liquido").textContent = resultado.toFixed(2);
+
+    box.style.background = resultado < 0 ? "#f8d7da" : "#d4edda";
+    box.style.color = resultado < 0 ? "#721c24" : "#155724";
+}
+
+/* SALVAR / CARREGAR */
+function getDateString() {
+    const d = String(document.getElementById("day").value).padStart(2,"0");
+    const m = String(document.getElementById("month").value).padStart(2,"0");
+    const y = String(document.getElementById("year").value);
+    return `${y}-${m}-${d}`;
+}
+
+function saveDailyRecord() {
+    const key = STORAGE_PREFIX + getDateString();
+
+    const despesas = [...document.querySelectorAll(".expense-row")].map(row => ({
+        desc: row.querySelector(".expense-desc").value,
+        value: Number(row.querySelector(".expense-value").value) || 0
+    }));
+
+    const data = {
+        loja: getNumber("faturamento-loja"),
+        ifood: getNumber("entrada-ifood"),
+        despesas: despesas
+    };
+
+    localStorage.setItem(key, JSON.stringify(data));
+    showMessage("save-status", "Dia salvo!", "success");
+
+    calculateAccumulated();
+}
+
+function loadDailyRecord() {
+    const key = STORAGE_PREFIX + getDateString();
+    const data = JSON.parse(localStorage.getItem(key));
+
+    document.getElementById("expenses-list").innerHTML = "";
+
+    if (!data) {
+        document.getElementById("faturamento-loja").value = 0;
+        document.getElementById("entrada-ifood").value = 0;
+        updateTotals();
+        return;
+    }
+
+    document.getElementById("faturamento-loja").value = data.loja;
+    document.getElementById("entrada-ifood").value = data.ifood;
+
+    data.despesas.forEach(d => addExpense(d.desc, d.value));
+
+    updateTotals();
+}
+
+/* ACUMULADO */
+function calculateAccumulated() {
+    let loja = 0, ifood = 0, despesas = 0;
+
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k.startsWith(STORAGE_PREFIX)) continue;
+
+        const d = JSON.parse(localStorage.getItem(k));
+
+        loja += d.loja;
+        ifood += d.ifood;
+        despesas += d.despesas.reduce((s,x)=>s+x.value, 0);
+    }
+
+    const total = loja + ifood;
+    const liquido = total - despesas;
+
+    document.getElementById("accumulated-faturamento-loja").textContent = loja.toFixed(2);
+    document.getElementById("accumulated-entrada-ifood").textContent = ifood.toFixed(2);
+    document.getElementById("accumulated-faturamento").textContent = total.toFixed(2);
+    document.getElementById("accumulated-despesas").textContent = despesas.toFixed(2);
+    document.getElementById("accumulated-resultado").textContent = liquido.toFixed(2);
+
+    const box = document.getElementById("accumulated-resultado-box");
+    box.style.background = liquido < 0 ? "#f8d7da" : "#d4edda";
+    box.style.color = liquido < 0 ? "#721c24" : "#155724";
+}
+
+/* INICIALIZAÇÃO */
+document.addEventListener("DOMContentLoaded", () => {
+    populateDateSelectors();
+    loadDailyRecord();
+    calculateAccumulated();
+
+    document.getElementById("faturamento-loja")
+        .addEventListener("input", updateTotals);
+    document.getElementById("entrada-ifood")
+        .addEventListener("input", updateTotals);
+
+    document.getElementById("add-expense-btn")
+        .addEventListener("click", () => {
+            const desc = document.getElementById("new-expense-desc").value.trim();
+            const val = Number(document.getElementById("new-expense-value").value) || 0;
+
+            if (!desc && val === 0) {
+                showMessage("save-status", "Preencha descrição ou valor!", "error");
+                return;
+            }
+
+            addExpense(desc || "Sem descrição", val);
+
+            document.getElementById("new-expense-desc").value = "";
+            document.getElementById("new-expense-value").value = "";
+            updateTotals();
+        });
+
+    document.getElementById("save-day-btn")
+        .addEventListener("click", saveDailyRecord);
+});
+</script>
+
+</body>
+</html>
